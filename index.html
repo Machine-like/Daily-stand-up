@@ -168,6 +168,23 @@
     flex-direction:column;
     gap:10px;
   }
+  .rows-header{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    padding:0 16px;
+  }
+  .rows-header .row-top, .rows-header .row-bottom{
+    font-size:11px;
+    font-weight:600;
+    color:var(--muted);
+    letter-spacing:.04em;
+    text-transform:uppercase;
+  }
+  .rows-header .row-top > span:first-child, .rows-header .row-top > span:last-child{visibility:hidden;}
+  @media (max-width:720px){
+    .rows-header{display:none;}
+  }
   .row-card{
     background:var(--surface);
     border:1px solid var(--line);
@@ -175,15 +192,31 @@
     border-radius:12px;
     box-shadow:var(--shadow);
     padding:14px 16px;
-    display:grid;
-    grid-template-columns:36px 1.3fr 1.3fr 1.8fr 36px;
-    gap:12px;
-    align-items:start;
+    display:flex;
+    flex-direction:column;
   }
   .row-card[data-status-kind="good"]{border-left-color:var(--good);}
   .row-card[data-status-kind="pending"]{border-left-color:var(--pending);}
+  .row-top{
+    display:grid;
+    grid-template-columns:36px 1.1fr 1.2fr 1.2fr 36px;
+    gap:12px;
+    align-items:start;
+  }
+  .row-bottom{
+    display:grid;
+    grid-template-columns:128px 128px 1.6fr;
+    gap:12px;
+    align-items:start;
+    margin-top:12px;
+    padding-top:12px;
+    border-top:1px dashed var(--line);
+  }
+  .row-bottom.timeline-collapsed{grid-template-columns:1fr;}
   @media (max-width:720px){
-    .row-card{grid-template-columns:1fr;}
+    .row-top, .row-bottom{grid-template-columns:1fr;}
+    .row-bottom.timeline-collapsed{grid-template-columns:1fr;}
+    .row-bottom{margin-top:10px; padding-top:10px;}
     .row-card .cell::before{
       content:attr(data-label);
       display:block;
@@ -196,6 +229,21 @@
     }
   }
   .cell{display:flex; flex-direction:column; min-width:0;}
+  .cell[hidden]{display:none;}
+  .timeline-toggle{
+    align-self:flex-start;
+    margin-top:8px;
+    padding:0;
+    border:none;
+    background:none;
+    color:var(--accent);
+    font-size:12px;
+    font-weight:600;
+    cursor:pointer;
+    text-decoration:underline;
+    text-underline-offset:2px;
+  }
+  .timeline-toggle[hidden]{display:none;}
   .sl-no{
     font-family:"JetBrains Mono", ui-monospace, monospace;
     font-weight:700;
@@ -218,6 +266,20 @@
     color:var(--pending);
     background:var(--pending-bg);
     border-color:var(--pending);
+  }
+  .robot-input{font-weight:600;}
+  .carried-badge{
+    display:inline-block;
+    font-size:10px;
+    font-weight:700;
+    letter-spacing:.03em;
+    text-transform:uppercase;
+    color:var(--pending);
+    background:var(--pending-bg);
+    border-radius:999px;
+    padding:2px 8px;
+    margin-top:6px;
+    width:fit-content;
   }
   .row-remove{
     background:transparent;
@@ -535,25 +597,25 @@ function Re(t){var e=0;if(71!==t[e++]||73!==t[e++]||70!==t[e++]||56!==t[e++]||56
     Copyright (c) 2008, Adobe Systems Incorporated
     All rights reserved.
 
-    Redistribution and use in source and binary forms, with or without 
+    Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions are
     met:
 
-    * Redistributions of source code must retain the above copyright notice, 
+    * Redistributions of source code must retain the above copyright notice,
       this list of conditions and the following disclaimer.
-    
+
     * Redistributions in binary form must reproduce the above copyright
-      notice, this list of conditions and the following disclaimer in the 
+      notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    
-    * Neither the name of Adobe Systems Incorporated nor the names of its 
-      contributors may be used to endorse or promote products derived from 
+
+    * Neither the name of Adobe Systems Incorporated nor the names of its
+      contributors may be used to endorse or promote products derived from
       this software without specific prior written permission.
 
     THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
     IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
     THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-    PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR 
+    PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
     CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
     EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
     PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
@@ -703,7 +765,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 </script>
 <script>
 /*!
- * 
+ *
  *               jsPDF AutoTable plugin v3.8.4
  *
  *               Copyright (c) 2024 Simon Bengtsson, https://github.com/simonbengtsson/jsPDF-AutoTable
@@ -729,6 +791,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   <option value="Ready for QC">
 </datalist>
 
+<datalist id="robot-suggestions"></datalist>
+
 <div class="page">
   <div class="header-card">
     <div class="header-top">
@@ -750,6 +814,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     </div>
   </div>
 
+  <div class="rows-header">
+    <div class="row-top">
+      <span>Sl.</span><span>Robot / Unit</span><span>System</span><span>Status</span><span></span>
+    </div>
+    <div class="row-bottom">
+      <span>Requested on</span><span>Received on</span><span>Remarks / Comments</span>
+    </div>
+  </div>
   <div class="rows" id="rows"></div>
 
   <div class="actions">
@@ -779,7 +851,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   var displayDateEl = document.getElementById("displayDate");
   var statusLineEl = document.getElementById("statusLine");
 
-  var STORAGE_KEY = "standup-log-draft-v1";
+  var STORAGE_KEY = "standup-log-draft-v2";
+  var ROBOTS_KEY = "standup-log-robots-v1";
+  var robotHistory = [];
 
   function todayISO(){
     var d = new Date();
@@ -795,6 +869,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     if(isNaN(d.getTime())) return iso;
     var opts = { day: "2-digit", month: "short", year: "numeric" };
     return d.toLocaleDateString("en-GB", opts);
+  }
+
+  function formatShortDate(iso){
+    if(!iso) return "";
+    var parts = iso.split("-");
+    if(parts.length !== 3) return iso;
+    var d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    if(isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
   }
 
   function statusKind(status){
@@ -826,6 +909,39 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     }
   }
 
+  function loadRobotHistory(){
+    try{
+      var raw = localStorage.getItem(ROBOTS_KEY);
+      var parsed = raw ? JSON.parse(raw) : [];
+      robotHistory = Array.isArray(parsed) ? parsed : [];
+    }catch(e){
+      robotHistory = [];
+    }
+    renderRobotDatalist();
+  }
+
+  function rememberRobot(name){
+    name = (name || "").trim();
+    if(!name) return;
+    var idx = robotHistory.indexOf(name);
+    if(idx !== -1) robotHistory.splice(idx, 1);
+    robotHistory.unshift(name);
+    if(robotHistory.length > 40) robotHistory.length = 40;
+    try{ localStorage.setItem(ROBOTS_KEY, JSON.stringify(robotHistory)); }catch(e){}
+    renderRobotDatalist();
+  }
+
+  function renderRobotDatalist(){
+    var list = document.getElementById("robot-suggestions");
+    if(!list) return;
+    list.innerHTML = "";
+    robotHistory.forEach(function(name){
+      var opt = document.createElement("option");
+      opt.value = name;
+      list.appendChild(opt);
+    });
+  }
+
   function makeOptionEl(value, selectedValue){
     var opt = document.createElement("option");
     opt.value = value;
@@ -839,12 +955,28 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     var card = document.createElement("div");
     card.className = "row-card";
 
+    var rowTop = document.createElement("div");
+    rowTop.className = "row-top";
+    var rowBottom = document.createElement("div");
+    rowBottom.className = "row-bottom";
+
     var slCell = document.createElement("div");
     slCell.className = "cell sl-no-cell";
     slCell.setAttribute("data-label", "Sl. No.");
     var slNo = document.createElement("div");
     slNo.className = "sl-no mono";
     slCell.appendChild(slNo);
+
+    var robotCell = document.createElement("div");
+    robotCell.className = "cell";
+    robotCell.setAttribute("data-label", "Robot / Unit");
+    var robotInput = document.createElement("input");
+    robotInput.type = "text";
+    robotInput.className = "robot-input";
+    robotInput.setAttribute("list", "robot-suggestions");
+    robotInput.placeholder = "e.g. Bot 10 / spare03";
+    robotInput.value = data.robot || "";
+    robotCell.appendChild(robotInput);
 
     var sysCell = document.createElement("div");
     sysCell.className = "cell";
@@ -864,6 +996,37 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     if(!data.status) statSelect.selectedIndex = 0;
     statCell.appendChild(statSelect);
 
+    var removeCell = document.createElement("div");
+    removeCell.className = "cell";
+    var removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "row-remove";
+    removeBtn.setAttribute("aria-label", "Remove row");
+    removeBtn.textContent = "✕";
+    removeCell.appendChild(removeBtn);
+
+    rowTop.appendChild(slCell);
+    rowTop.appendChild(robotCell);
+    rowTop.appendChild(sysCell);
+    rowTop.appendChild(statCell);
+    rowTop.appendChild(removeCell);
+
+    var reqCell = document.createElement("div");
+    reqCell.className = "cell";
+    reqCell.setAttribute("data-label", "Requested on");
+    var reqInput = document.createElement("input");
+    reqInput.type = "date";
+    reqInput.value = data.requested || "";
+    reqCell.appendChild(reqInput);
+
+    var recCell = document.createElement("div");
+    recCell.className = "cell";
+    recCell.setAttribute("data-label", "Received on");
+    var recInput = document.createElement("input");
+    recInput.type = "date";
+    recInput.value = data.received || "";
+    recCell.appendChild(recInput);
+
     var remCell = document.createElement("div");
     remCell.className = "cell";
     remCell.setAttribute("data-label", "Remarks / Comments");
@@ -874,20 +1037,24 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     remInput.value = data.remarks || "";
     remCell.appendChild(remInput);
 
-    var removeCell = document.createElement("div");
-    removeCell.className = "cell";
-    var removeBtn = document.createElement("button");
-    removeBtn.type = "button";
-    removeBtn.className = "row-remove";
-    removeBtn.setAttribute("aria-label", "Remove row");
-    removeBtn.textContent = "✕";
-    removeCell.appendChild(removeBtn);
+    var timelineToggle = document.createElement("button");
+    timelineToggle.type = "button";
+    timelineToggle.className = "timeline-toggle";
+    timelineToggle.textContent = "+ Add requested / received dates";
+    remCell.appendChild(timelineToggle);
 
-    card.appendChild(slCell);
-    card.appendChild(sysCell);
-    card.appendChild(statCell);
-    card.appendChild(remCell);
-    card.appendChild(removeCell);
+    rowBottom.appendChild(reqCell);
+    rowBottom.appendChild(recCell);
+    rowBottom.appendChild(remCell);
+
+    card.appendChild(rowTop);
+    if(data.carried){
+      var badge = document.createElement("div");
+      badge.className = "carried-badge";
+      badge.textContent = "Carried from earlier day";
+      card.appendChild(badge);
+    }
+    card.appendChild(rowBottom);
 
     function updateKind(){
       var kind = statusKind(statSelect.value);
@@ -896,9 +1063,39 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     }
     updateKind();
 
-    statSelect.addEventListener("change", function(){ updateKind(); saveDraft(); });
+    var timelineForced = false;
+    function updateTimelineVisibility(){
+      var show = timelineForced || statSelect.value !== "Completed" || !!reqInput.value || !!recInput.value;
+      reqCell.hidden = !show;
+      recCell.hidden = !show;
+      timelineToggle.hidden = show;
+      rowBottom.classList.toggle("timeline-collapsed", !show);
+    }
+    updateTimelineVisibility();
+
+    timelineToggle.addEventListener("click", function(){
+      timelineForced = true;
+      updateTimelineVisibility();
+      reqInput.focus();
+    });
+
+    statSelect.addEventListener("change", function(){
+      updateKind();
+      if(statSelect.value !== "Completed" && !reqInput.value){
+        reqInput.value = todayISO();
+      }
+      if(statSelect.value === "Completed" && !recInput.value){
+        recInput.value = todayISO();
+      }
+      updateTimelineVisibility();
+      saveDraft();
+    });
     sysSelect.addEventListener("change", saveDraft);
     remInput.addEventListener("input", saveDraft);
+    reqInput.addEventListener("change", function(){ updateTimelineVisibility(); saveDraft(); });
+    recInput.addEventListener("change", function(){ updateTimelineVisibility(); saveDraft(); });
+    robotInput.addEventListener("input", saveDraft);
+    robotInput.addEventListener("change", function(){ rememberRobot(robotInput.value); });
 
     removeBtn.addEventListener("click", function(){
       card.remove();
@@ -907,7 +1104,15 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       setStatus("");
     });
 
-    card._refs = { slNo: slNo, sysSelect: sysSelect, statSelect: statSelect, remInput: remInput };
+    card._refs = {
+      slNo: slNo,
+      robotInput: robotInput,
+      sysSelect: sysSelect,
+      statSelect: statSelect,
+      reqInput: reqInput,
+      recInput: recInput,
+      remInput: remInput
+    };
     return card;
   }
 
@@ -930,8 +1135,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     cards.forEach(function(card){
       var r = card._refs;
       out.push({
+        robot: r.robotInput.value.trim(),
         system: r.sysSelect.value,
         status: r.statSelect.value,
+        requested: r.reqInput.value,
+        received: r.recInput.value,
         remarks: r.remInput.value.trim()
       });
     });
@@ -961,6 +1169,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     saveDraft();
   });
 
+  function timelineSuffix(r){
+    var parts = [];
+    if(r.requested) parts.push("Req " + formatShortDate(r.requested));
+    if(r.received) parts.push("Recv " + formatShortDate(r.received));
+    return parts.length ? " (" + parts.join(", ") + ")" : "";
+  }
+
   function buildTextReport(){
     var rows = getRowsData();
     var dateStr = formatDisplayDate(reportDateEl.value || todayISO());
@@ -969,7 +1184,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     if(techNameEl.value.trim()) lines.push("Technician: " + techNameEl.value.trim());
     lines.push("");
     rows.forEach(function(r, i){
-      lines.push((i + 1) + ". " + r.system + " - " + r.status + (r.remarks ? " - " + r.remarks : ""));
+      var robotPart = r.robot ? r.robot + " - " : "";
+      lines.push((i + 1) + ". " + robotPart + r.system + " - " + r.status + (r.remarks ? " - " + r.remarks : "") + timelineSuffix(r));
     });
     return lines.join("\n");
   }
@@ -1033,38 +1249,49 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   function buildPdfDoc(){
     var jsPDFCtor = window.jspdf && window.jspdf.jsPDF;
     if(!jsPDFCtor) return null;
-    var doc = new jsPDFCtor({ unit: "pt", format: "a4" });
+    var doc = new jsPDFCtor({ unit: "pt", format: "a4", orientation: "landscape" });
     var rows = getRowsData();
     var dateStr = formatDisplayDate(reportDateEl.value || todayISO());
     var name = techNameEl.value.trim();
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(16);
-    doc.text("Today's Update - " + dateStr, 40, 46);
+    doc.text("Today's Update - " + dateStr, 40, 42);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.setTextColor(90, 90, 90);
-    doc.text(name ? "Technician: " + name : "Daily standup report", 40, 64);
+    doc.text(name ? "Technician: " + name : "Daily standup report", 40, 60);
 
     var body = rows.map(function(r, i){
-      return [String(i + 1), r.system, r.status, r.remarks || "-"];
+      return [
+        String(i + 1),
+        r.robot || "-",
+        r.system,
+        r.status,
+        r.requested ? formatShortDate(r.requested) : "-",
+        r.received ? formatShortDate(r.received) : "-",
+        r.remarks || "-"
+      ];
     });
 
     doc.autoTable({
-      head: [["Sl. No.", "System", "Status", "Remarks / Comments"]],
+      head: [["Sl. No.", "Robot", "System", "Status", "Requested", "Received", "Remarks / Comments"]],
       body: body,
-      startY: 80,
+      startY: 76,
       styles: { font: "helvetica", fontSize: 10, cellPadding: 6, valign: "top" },
       headStyles: { fillColor: [41, 85, 201], textColor: 255, fontStyle: "bold" },
       columnStyles: {
-        0: { cellWidth: 45, halign: "center" },
-        1: { cellWidth: 130 },
-        2: { cellWidth: 130 },
-        3: { cellWidth: "auto" }
+        0: { cellWidth: 35, halign: "center" },
+        1: { cellWidth: 95 },
+        2: { cellWidth: 120 },
+        3: { cellWidth: 115 },
+        4: { cellWidth: 65, halign: "center" },
+        5: { cellWidth: 65, halign: "center" },
+        6: { cellWidth: "auto" }
       },
       didParseCell: function(data){
-        if(data.section === "body" && data.column.index === 2){
+        if(data.section === "body" && data.column.index === 3){
           var val = data.cell.raw;
           if(val === "Completed"){
             data.cell.styles.textColor = [24, 122, 79];
@@ -1109,6 +1336,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   });
 
   /* boot */
+  loadRobotHistory();
   var draft = loadDraft();
   var iso = todayISO();
 
@@ -1120,8 +1348,24 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     } else {
       addRow();
     }
+  } else if(draft){
+    techNameEl.value = draft.techName || "";
+    reportDateEl.value = iso;
+    var carried = draft.rows.filter(function(r){ return r.status && r.status !== "Completed"; });
+    if(carried.length){
+      carried.forEach(function(r){
+        addRow({
+          robot: r.robot, system: r.system, status: r.status,
+          requested: r.requested, received: r.received, remarks: r.remarks,
+          carried: true
+        });
+      });
+      setStatus(carried.length + " unresolved item" + (carried.length > 1 ? "s" : "") + " carried over from your last update.", "");
+    } else {
+      addRow();
+    }
+    addRow();
   } else {
-    if(draft && draft.techName) techNameEl.value = draft.techName;
     reportDateEl.value = iso;
     addRow();
     addRow();
